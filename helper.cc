@@ -11,6 +11,8 @@
  ******************************************************************/
 
 # include "helper.h"
+#include <iostream>
+using namespace std;
 
 int check_arg (char *buffer)
 {
@@ -82,4 +84,21 @@ int sem_close (int id)
   if (semctl (id, 0, IPC_RMID, 0) < 0)
     return -1;
   return 0;
+}
+
+int shm_create( key_t shmKey, int shmSize )
+{
+  int shmID;
+  shmID = shmget( shmKey, shmSize, 0666 | IPC_CREAT );
+  return shmID;
+}
+
+void* shm_attach( key_t shmKey )
+{
+  int shmid;
+  shmid = shmget( shmKey, 0, 0666|0 );
+
+  void *shmemory;
+  shmemory = shmat( shmid, (void *)0, 0 );
+  return shmemory;
 }

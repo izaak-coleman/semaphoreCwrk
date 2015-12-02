@@ -1,4 +1,4 @@
-/******************************************************************
+/*****************************************************************
  * Header file for the helper functions. This file includes the
  * required header files, as well as the structures and the shared
  * memory/semaphore values (which are to be changed as needed).
@@ -17,18 +17,9 @@
 # include <errno.h>
 # include <string.h>
 
-# define SHM_KEY 0x50 // Change this number as needed
 # define SHM_W 0200
 # define SHM_R 0400
 # define SHM_MODE (SHM_R | SHM_W)
-# define SHM_SIZE 10000 // Change this number as needed
-# define SEM_KEY 0x50 // Change this number as needed
-
-union semun {
-    int val;               /* used for SETVAL only */
-    struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */
-    ushort *array;         /* used for GETALL and SETALL */
-};
 
 typedef struct jobtype
 {
@@ -41,8 +32,22 @@ typedef struct queue
   int size; 
   int front;
   int end;
-  JOBTYPE job[500]; // Can assume this to be maximum queue size
+  JOBTYPE jobs[500]; // Can assume this to be maximum queue size
 } QUEUE;
+
+static const key_t SEM_KEY = ftok( "helper.h", 'I' ); // key for sem access / gen
+static const key_t SHM_KEY = ftok( "helper.cc", 'Z' );// key for shm access / gen
+static const int SHM_SIZE = sizeof(QUEUE);
+static const int MUTEX = 0;
+static const int ITEM = 1;
+static const int SPACE  = 2;
+
+union semun {
+    int val;               /* used for SETVAL only */
+    struct semid_ds *buf;  /* used for IPC_STAT and IPC_SET */
+    ushort *array;         /* used for GETALL and SETALL */
+};
+
 
 int check_arg (char *);
 int sem_create (key_t, int);
@@ -52,3 +57,6 @@ void sem_wait (int, short unsigned int);
 int sem_timewait (int, short unsigned int, int);
 void sem_signal (int, short unsigned int);
 int sem_close (int);
+
+int shm_create( key_t shmKey, int shmSize );
+void* shm_attach( int shmid );
