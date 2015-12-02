@@ -4,8 +4,11 @@
 
 using namespace std;
 
+int getQueueSize( QUEUE *queue );
+/* Returns the size of the queue fron the QUEUE struct*/
+
 void addJob( int pid, int time, QUEUE *queue );
-/* Assigns a new job to the shm QUEUE array
+/* Assigns a new job to the shm QUEUE->jobs array
  * randomly generates a duration time for 
  * the job. */
 
@@ -36,7 +39,7 @@ int main (int argc, char *argv[])
 
 
 
-
+  int queueSize;
   int nextJob = 1;
   while( nextJob <= njobs ) {
     
@@ -46,7 +49,8 @@ int main (int argc, char *argv[])
   
     time(&end);
     elapsed = difftime( end, start );
-
+    
+    queueSize = getQueueSize( shmQueue ); // store size of queue
     addJob( pid, elapsed, shmQueue );
 
     sem_signal( semid, MUTEX );          // unlock shared memory
@@ -57,9 +61,16 @@ int main (int argc, char *argv[])
     nextJob++;
 
   }
+  sleep( (queueSize * 11) + 5 );  // sleep for max possible process time, plus 5
+  
   
   return 0;
 }
+
+int getQueueSize( QUEUE *queue ){
+  return queue->size;
+}
+
 void addJob( int pid, int time, QUEUE *queue){
   int end;              
   end = queue->end;                      // get current end of queue   

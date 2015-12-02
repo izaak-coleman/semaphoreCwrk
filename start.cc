@@ -29,7 +29,7 @@ int main (int argc, char **argv)
 
 /*---------------------- Generate Shared Memory ---------------------*/
 
-  shm_create( SHM_KEY, SHM_SIZE );        // gen shm
+  int shmid = shm_create( SHM_KEY, SHM_SIZE );        // gen shm
   
   QUEUE *shmQueue;
   shmQueue = (QUEUE*) shm_attach( SHM_KEY );     
@@ -37,7 +37,18 @@ int main (int argc, char **argv)
   shmQueue->front = 0;  shmQueue->end = 0;       // set queue to empty
   shmQueue->size = queueSize;                    // set the total queue size
 
-  sleep( 3000 );
-
+  /* Sleep for max possible time to assign one job and process it (11)
+   * times the queue size. Plus 10 for a buffer. */
+  cout << "Start.cc Starting to sleep...\n";
+  sleep( (queueSize * 11 ) + 10 );
+  cout << "Start.cc finished sleeping... \n";
+  sem_close( semid );        // destroy semaphore
+  cout << "start.cc destroyed semaphore \n";
+  shmdt( shmQueue );
+  cout << "start.coo detatching start.cc... \n";
+  shmctl( shmid, IPC_RMID, NULL );
+  cout << "start.cc Destrying memory\n";
+  
+  cout << "Start.cc ends \n";
   return 0;
 }

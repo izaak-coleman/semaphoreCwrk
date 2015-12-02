@@ -37,6 +37,7 @@ typedef struct queue
 
 static const key_t SEM_KEY = ftok( "helper.h", 'I' ); // key for sem access / gen
 static const key_t SHM_KEY = ftok( "helper.cc", 'Z' );// key for shm access / gen
+static const int EXIT_TIME = 10;
 static const int SHM_SIZE = sizeof(QUEUE);
 static const int MUTEX = 0;
 static const int ITEM = 1;
