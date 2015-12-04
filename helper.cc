@@ -79,6 +79,19 @@ void sem_signal (int id, short unsigned int num)
   semop (id, op, 1);
 }
 
+void sem_zero_wait( int id, short unsigned int num )
+{
+  struct sembuf op[] = {
+    {num, 0, SEM_UNDO}
+  };
+  semop( id, op, 1);
+}
+  
+int get_sem_value( int id, short unsigned int num )
+{
+  return semctl( id, num, GETVAL, 0 );
+}
+
 int sem_close (int id)
 {
   if (semctl (id, 0, IPC_RMID, 0) < 0)
@@ -93,10 +106,10 @@ int shm_create( key_t shmKey, int shmSize )
   return shmID;
 }
 
-void* shm_attach( key_t shmKey )
+void* shm_attach( key_t shmKey, int access )
 {
   int shmid;
-  shmid = shmget( shmKey, 0, 0666|0 );
+  shmid = shmget( shmKey, 0, access|0 );
 
   void *shmemory;
   shmemory = shmat( shmid, (void *)0, 0 );

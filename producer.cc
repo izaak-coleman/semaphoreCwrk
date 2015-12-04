@@ -4,9 +4,6 @@
 
 using namespace std;
 
-int getQueueSize( QUEUE *queue );
-/* Returns the size of the queue fron the QUEUE struct*/
-
 void addJob( int pid, int time, QUEUE *queue );
 /* Assigns a new job to the shm QUEUE->jobs array
  * randomly generates a duration time for 
@@ -24,6 +21,9 @@ int main (int argc, char *argv[])
   time_t start, end;
   int elapsed;
   time(&start);                          // start process time
+  shmid_ds shmStatInfo;
+  shmid_ds *shmStatInfo_p = &shmStatInfo;
+
 
   if( argc != 3) return -1;
   srand( time(NULL));
@@ -34,23 +34,29 @@ int main (int argc, char *argv[])
 
 
   int semid = sem_attach( SEM_KEY );     // gain access to semaphore set
+  sem_signal( semid, PROCESSES );        // add process to PROCESSES
+  cout << "PROCESSES value after starting procuder " << pid << ": " << get_sem_value(semid, PROCESSES ) << "\n";
+  
+  int shmid = shm_create( SHM_KEY, SHM_SIZE );
   QUEUE *shmQueue;
-  shmQueue = (QUEUE*) shm_attach( SHM_KEY );     // gain access to shared memory
+  shmQueue = (QUEUE*) shm_attach( SHM_KEY, SHM_W );     // gain access to shared memory
 
 
 
-  int queueSize;
+
   int nextJob = 1;
   while( nextJob <= njobs ) {
     
-    sem_wait( semid, SPACE );            // check if space is available
+    if( sem_timewait( semid, SPACE, EXIT_TIMEP ) != 0 ){
+      sem_wait( semid, PROCESSES );
+      return -1;                         // non-0 return as job process timeout 
+    }
     /*sleep if no space*/
     sem_wait( semid, MUTEX );            // lock shared memory to add job
   
     time(&end);
     elapsed = difftime( end, start );
     
-    queueSize = getQueueSize( shmQueue ); // store size of queue
     addJob( pid, elapsed, shmQueue );
 
     sem_signal( semid, MUTEX );          // unlock shared memory
@@ -61,14 +67,17 @@ int main (int argc, char *argv[])
     nextJob++;
 
   }
-  sleep( (queueSize * 11) + 5 );  // sleep for max possible process time, plus 5
+  cout << "Producer finished all jobs. So detatching from memory\n";
+  shmdt( shmQueue );                     // detach from shared memory
+  shmctl(shmid, IPC_STAT, shmStatInfo_p);
   
+  cout << "Producer " << pid << " waiting until last process\n";
+  sem_wait( semid, PROCESSES );          // remove from PROCESSES 
+  cout << "PROCESSES value after ending procuder " << pid << ": " << get_sem_value(semid, PROCESSES ) << "\n";
+  sem_zero_wait( semid, PROCESSES );     // wait untill last process finishes
   
+  cout << "Producer ending. \n";
   return 0;
-}
-
-int getQueueSize( QUEUE *queue ){
-  return queue->size;
 }
 
 void addJob( int pid, int time, QUEUE *queue){
