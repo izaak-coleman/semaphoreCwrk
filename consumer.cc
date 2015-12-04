@@ -38,13 +38,15 @@ int main (int argc, char *argv[])
   int processTime, jobID;
   while( true ){
     if( sem_timewait( semid, ITEM, EXIT_TIMEC ) != 0 ){
-      shmdt( shmQueue );
 
       sem_wait( semid, PROCESSES );           // remove from PROCESSES
       cout << "Consumer " << pid << " waiting until last process\n";
       cout << "PROCESSES value after ending consumer " << pid << ": " << get_sem_value(semid, PROCESSES ) << "\n";
       sem_zero_wait( semid, PROCESSES );    // wait untill last process finishes
+     
+      sem_wait( semid, MUTEX ); 
 
+      shmdt( shmQueue );
       shmctl(shmid, IPC_STAT, shmStatInfo_p);
       printf("consumer (%d), attachnum value is %d \n", pid, shmStatInfo_p->shm_nattch);
       if( shmStatInfo_p->shm_nattch == 0 ){
@@ -52,6 +54,8 @@ int main (int argc, char *argv[])
         shmctl(shmid, IPC_RMID, shmStatInfo_p);
         sem_close( semid );                   // ...destroy semaphore
       }
+      
+      sem_signal( semid, MUTEX );
 
       cout << "ending consumer ... \n";
       return 0;                             // if dead wait is true, end process
