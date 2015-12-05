@@ -19,16 +19,17 @@
 
 # define SHM_W 0200
 # define SHM_R 0400
-# define SHM_MODE (SHM_R | SHM_W)
+# define SHM_MODE (SHM_R | SHM W)
 
-static const key_t SEM_KEY = ftok( "helper.h", 'I' ); // key for sem access / gen
-static const key_t SHM_KEY = ftok( "helper.cc", 'Z' );// key for shm access / gen
-static const int EXIT_TIMEC = 10;      // consumer exit after EXIT_TIME seconds 
-static const int EXIT_TIMEP = 100;
-static const int MAX_QUEUE_SIZE = 500; 
+
+static const key_t SEM_KEY = ftok( "helper.h", 'I' ); // key for sem access/gen
+static const key_t SHM_KEY = ftok( "helper.cc", 'Z' );// key for shm access/gen
+static const int EXIT_TIMEC = 10;      // consumer exit after EXIT_TIMEC seconds 
+static const int EXIT_TIMEP = 100;     // producer exit after EXIT_TIMEP seconds
+static const int MAX_QUEUE_SIZE = 500;
 
 /* Semphore labels */
-static const int NUM_SEM = 4;   // four in set
+static const int NUM_SEM = 4;         // four semaphores in set
 
 static const int MUTEX = 0;           // sem[0] is mutex
 static const int ITEM = 1;            // sem[1] counts number of items
@@ -49,7 +50,7 @@ typedef struct queue
   JOBTYPE jobs[MAX_QUEUE_SIZE]; // Can assume this to be maximum queue size
 } QUEUE;
 
-static const int SHM_SIZE = sizeof(QUEUE);    // get required size of shmseg
+static const int SHM_SIZE = sizeof(QUEUE); // get required size of shmseg
 
 
 union semun {
@@ -69,6 +70,13 @@ void sem_signal (int, short unsigned int);
 int sem_close (int);
 
 int shm_create( key_t shmKey, int shmSize );
+/* generates shared memory and id */
+
 void* shm_attach( int shmid, int access);
+/* returns void pointer to shm */
+
 int get_sem_value( int id, short unsigned int num );
+/* returns the value of a semaphore */
+
 void sem_zero_wait( int id, short unsigned int num );
+/* process waits on non-zero semaphore*/

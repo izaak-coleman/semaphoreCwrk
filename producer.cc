@@ -18,83 +18,94 @@ void printJob( int pid, int time, int jobid , int duration );
 
 int main (int argc, char *argv[])
 {
+
+/*--------------- Set up process ------------------*/
   time_t start, end;
   int elapsed;
-  time(&start);                          // start process time
-  shmid_ds shmStatInfo;
+  time(&start);                                 // start process time
+  shmid_ds shmStatInfo;                         // shm IPC_STAT info
   shmid_ds *shmStatInfo_p = &shmStatInfo;
 
 
-  if( argc != 3) return -1;
-  srand( time(NULL));
+  if( argc != 3) return -1;        // check process id and njobs specified
+  srand( time(NULL) );             
 
   int pid, njobs;
-  pid = check_arg( argv[1] );            
-  njobs = check_arg( argv[2] );          // number of jobs p will add to queue
+  pid = check_arg( argv[1] );            // store process id
+  njobs = check_arg( argv[2] );          // store number of jobs
 
 
   int semid = sem_attach( SEM_KEY );     // gain access to semaphore set
   sem_signal( semid, PROCESSES );        // add process to PROCESSES
-  cout << "PROCESSES value after starting procuder " << pid << ": " << get_sem_value(semid, PROCESSES ) << "\n";
   
-  int shmid = shm_create( SHM_KEY, SHM_SIZE );
+  int shmid = shm_create( SHM_KEY, SHM_SIZE );          // get shared memory id
   QUEUE *shmQueue;
-  shmQueue = (QUEUE*) shm_attach( SHM_KEY, SHM_W );     // gain access to shared memory
+  shmQueue = (QUEUE*) shm_attach( SHM_KEY, SHM_W );   // attach to shared memory
 
 
-
+/*------------- produce required jobs in while loop ----------*/
 
   int nextJob = 1;
   while( nextJob <= njobs ) {
     
+    /*---------------- if no jobs are consumed within 30min -------------*/
+    /*----------------- then exit the program with error ----------------*/
     if( sem_timewait( semid, SPACE, EXIT_TIMEP ) != 0 ){
-      sem_wait( semid, PROCESSES );
-      return -1;                         // non-0 return as job process timeout 
+      sem_wait( semid, PROCESSES );           // remove from PROCESSES COUNT
+      /* Dont delete shared memory automatically
+         as jobs are still valid. */
+      exit(1);                       // exit(1) as no consumer to remove jobs
     }
-    /*sleep if no space*/
+
+    /*-------- if jobs are removed before 30min then add more -------*/
+
     sem_wait( semid, MUTEX );            // lock shared memory to add job
   
     time(&end);
-    elapsed = difftime( end, start );
+    elapsed = difftime( end, start );    // time elapsed when job added
     
     addJob( pid, elapsed, shmQueue );
 
     sem_signal( semid, MUTEX );          // unlock shared memory
     sem_signal( semid, ITEM );           // signal item has been added
 
-    int stall = (rand() % 3) + 2;
-    sleep( stall );                      // stall between 2-4s before request
-    nextJob++;
+    int stall = (rand() % 3) + 2;        // random stall time between 2-4s
 
+    if( nextJob == njobs ){              // if last job, print last job msg
+      time(&end);
+      elapsed = difftime( end, start );
+      printf( "Producer(%d) time %2d: No more jobs to generate.\n", 
+              pid, elapsed );
+    }   
+    sleep( stall );                      // stall before add next job
+    nextJob++;
   }
-  cout << "Producer finished all jobs. So detatching from memory\n";
-  shmdt( shmQueue );                     // detach from shared memory
-  shmctl(shmid, IPC_STAT, shmStatInfo_p);
+
+  shmdt( shmQueue );                           // detach from shared memory
+  shmctl(shmid, IPC_STAT, shmStatInfo_p);      // update shm stat info
   
-  cout << "Producer " << pid << " waiting until last process\n";
   sem_wait( semid, PROCESSES );          // remove from PROCESSES 
-  cout << "PROCESSES value after ending procuder " << pid << ": " << get_sem_value(semid, PROCESSES ) << "\n";
   sem_zero_wait( semid, PROCESSES );     // wait untill last process finishes
   
-  cout << "Producer ending. \n";
-  return 0;
+  return 0;                               // end producer
 }
 
 void addJob( int pid, int time, QUEUE *queue){
-  int end;              
-  end = queue->end;                      // get current end of queue   
-  queue->jobs[end].id = (end+1);         // assign id
-  queue->jobs[end].duration = (rand() % 5) + 2;  // assign duration
+  int currentEnd;              
+  currentEnd = queue->end;                          // get current end of queue   
+  queue->jobs[currentEnd].id = (currentEnd+1);         // assign id to job
+  queue->jobs[currentEnd].duration = (rand() % 5) + 2; // assign duration to job
 
   /* Notify job addition */
-  printJob( pid, time, queue->jobs[end].id, queue->jobs[end].duration);
+  printJob( pid, time, queue->jobs[currentEnd].id, 
+            queue->jobs[currentEnd].duration);
 
   queue->end++;                          // increment end of queue after new job
   queue->end %= queue->size;             // loop circular queue
 }
 
 void printJob( int pid, int time, int jobid , int duration ){
-
-  cout << "Producer(" << pid << ") time\t" << time << ": Job id " << jobid
-       << " duration " << duration << "\n";
+  
+  printf( "Producer(%d) time %2d: Job id %d duration %d\n",
+          pid, time, jobid, duration );
 }

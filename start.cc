@@ -12,17 +12,16 @@ using namespace std;
 int main (int argc, char **argv)
 {
 
-  if ( argc != 2 ) return -1;              // need queue size
-  int queueSize = check_arg( argv[1] );    // store number of processes to run
+  if ( argc != 2 ) exit(1);                // check queue size specified
+  int queueSize = check_arg( argv[1] );    // store queue size (# of total jobs)
   
-  /* If queueSize greater than max array, or negative, return with error */ 
+  /* If queueSize greater than max array, or negative, exit with error */
   if( queueSize > MAX_QUEUE_SIZE || queueSize < 0 ){
-    return -1;
+    exit(1);
   }
 
-  shmid_ds shmStatInfo;
-  shmid_ds *shmStatInfo_p = &shmStatInfo;
-
+  shmid_ds shmStatInfo;                    // shm IPC_STAT info struct
+  shmid_ds *shmStatInfo_p = &shmStatInfo; 
 
 
 /*---------------------- Generate Semaphores ------------------------*/
@@ -32,7 +31,7 @@ int main (int argc, char **argv)
   sem_init( semid, MUTEX, 1 );                  // MUTEX is binary
   sem_init( semid, ITEM, 0 );                   // QUEUE starts with no items
   sem_init( semid, SPACE, queueSize );          // QUEUE starts with only spaces
-  sem_init( semid, PROCESSES, 0 );              // start.cc is counted
+  sem_init( semid, PROCESSES, 0 );              // number of con/prod processes
 
 
 /*---------------------- Generate Shared Memory ---------------------*/
@@ -40,7 +39,7 @@ int main (int argc, char **argv)
   int shmid;
   QUEUE *shmQueue;
   shmid = shm_create( SHM_KEY, SHM_SIZE );
-  shmQueue = (QUEUE*) shm_attach( SHM_KEY, 0 );     
+  shmQueue = (QUEUE*) shm_attach( SHM_KEY, 0 );
 
   shmQueue->front = 0;  shmQueue->end = 0;       // set queue to empty
   shmQueue->size = queueSize;                    // set the total queue size
@@ -50,6 +49,5 @@ int main (int argc, char **argv)
 
   shmdt( shmQueue );
   shmctl( shmid, IPC_STAT, shmStatInfo_p );
-
   return 0;
 }
