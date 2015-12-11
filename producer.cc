@@ -28,7 +28,7 @@ int main (int argc, char *argv[])
 
 
   if( argc != 3) return -1;        // check process id and njobs specified
-  srand( time(NULL) );             
+  srand( getpid() );             
 
   int pid, njobs;
   pid = check_arg( argv[1] );            // store process id
@@ -37,10 +37,12 @@ int main (int argc, char *argv[])
 
   int semid = sem_attach( SEM_KEY );     // gain access to semaphore set
   sem_signal( semid, PROCESSES );        // add process to PROCESSES
-  
-  int shmid = shm_create( SHM_KEY, SHM_SIZE );          // get shared memory id
+ 
+
+  /* Attach to shared memory and get shmid */ 
+  int shmid; 
   QUEUE *shmQueue;
-  shmQueue = (QUEUE*) shm_attach( SHM_KEY, SHM_W );   // attach to shared memory
+  shmQueue = (QUEUE*) shm_attach( SHM_KEY, shmid,  SHM_W ); 
 
 
 /*------------- produce required jobs in while loop ----------*/

@@ -17,6 +17,7 @@ int main (int argc, char **argv)
   
   /* If queueSize greater than max array, or negative, exit with error */
   if( queueSize > MAX_QUEUE_SIZE || queueSize < 0 ){
+    printf( "Queue size exceeded maximum (500 ). Exiting start \n" );
     exit(1);
   }
 
@@ -39,7 +40,7 @@ int main (int argc, char **argv)
   int shmid;
   QUEUE *shmQueue;
   shmid = shm_create( SHM_KEY, SHM_SIZE );
-  shmQueue = (QUEUE*) shm_attach( SHM_KEY, 0 );
+  shmQueue = (QUEUE*) shm_attach( SHM_KEY, shmid, 0 );
 
   shmQueue->front = 0;  shmQueue->end = 0;       // set queue to empty
   shmQueue->size = queueSize;                    // set the total queue size

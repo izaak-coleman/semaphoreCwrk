@@ -32,10 +32,11 @@ int main (int argc, char *argv[])
   int semid = sem_attach( SEM_KEY );          // gain access to semaphore set
   sem_signal( semid, PROCESSES );             // add process to PROCESSES
 
-
-  int shmid = shm_create( SHM_KEY, SHM_SIZE );      // get shmid 
+  
+  /* attach to shared memory, and get shmid */
+  int shmid;
   QUEUE *shmQueue;
-  shmQueue = (QUEUE*) shm_attach( SHM_KEY, SHM_R ); // attach to shared memory 
+  shmQueue = (QUEUE*) shm_attach( SHM_KEY, shmid, SHM_R ); // attach to shared memory 
 
   /*-------------- consume required jobs in while loop ----*/
   int processTime, jobID;
@@ -50,12 +51,6 @@ int main (int argc, char *argv[])
       sem_zero_wait( semid, PROCESSES );    // wait untill last process finishes
 
      
-      /* As detatching the consumer, updating the shm stat info,
-         and branching the shm/sem deletion to the last consumer
-         is non atomic, this is performed in a mutually excluded
-         Crit.sec to stop multiple deletions. */
-      sem_wait( semid, MUTEX );
-
       time(&end);
       elapsed = difftime( end, start );
       printf( "Consumer(%d) time %2d: No more jobs left.\n", pid, elapsed );
@@ -66,7 +61,6 @@ int main (int argc, char *argv[])
         sem_close( semid );                          // destroy semaphore
       }
       
-      sem_signal( semid, MUTEX );
 
       return 0;                                      // end consumer
     }

@@ -106,9 +106,8 @@ int shm_create( key_t shmKey, int shmSize )
   return shmID;
 }
 
-void* shm_attach( key_t shmKey, int access )
+void* shm_attach( key_t shmKey, int &shmid, int access )
 {
-  int shmid;
   shmid = shmget( shmKey, 0, access|0 );
 
   void *shmemory;

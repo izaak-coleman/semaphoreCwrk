@@ -72,7 +72,7 @@ int sem_close (int);
 int shm_create( key_t shmKey, int shmSize );
 /* generates shared memory and id */
 
-void* shm_attach( int shmid, int access);
+void* shm_attach( key_t shmKey, int &shmid, int access);
 /* returns void pointer to shm */
 
 int get_sem_value( int id, short unsigned int num );
